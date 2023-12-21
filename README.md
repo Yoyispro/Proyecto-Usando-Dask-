@@ -1,4 +1,8 @@
 # Proyecto-Usando-Dask-
+# Enalce al colab 
+[Proyecto dask](https://colab.research.google.com/drive/1ahX_1IP5hxL3qrmds9B_0I8W3Tq9mAcC?usp=sharing)
+
+
 Mediante el uso de la biblioteca dask y dask_ml vamos a hacer el proceso de clasificación, el objetivo es predecir la probabilidad de que una máquina con Windows se infecte con varias familias de malware, en función de las diferentes propiedades de esa máquina.
 
 Los datos de telemetría que contienen estas propiedades y las infecciones de la máquina se generaron mediante la combinación de informes de latidos y amenazas recopilados por la solución de protección de punto final de Microsoft, Windows Defender.
