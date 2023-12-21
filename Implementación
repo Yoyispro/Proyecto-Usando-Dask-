@@ -1,0 +1,235 @@
+
+
+import dask
+import dask.dataframe as dd
+import warnings
+import numpy as np
+import pandas as pd
+import gc
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import LabelEncoder
+
+
+%matplotlib inline
+sns.set(style="whitegrid")
+warnings.filterwarnings("ignore")
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+dtypes = {
+        'MachineIdentifier':                                    'category',
+        'ProductName':                                          'category',
+        'EngineVersion':                                        'category',
+        'AppVersion':                                           'category',
+        'AvSigVersion':                                         'category',
+        'IsBeta':                                               'int8',
+        'RtpStateBitfield':                                     'float16',
+        'IsSxsPassiveMode':                                     'int8',
+        'DefaultBrowsersIdentifier':                            'float16',
+        'AVProductStatesIdentifier':                            'float32',
+        'AVProductsInstalled':                                  'float16',
+        'AVProductsEnabled':                                    'float16',
+        'HasTpm':                                               'int8',
+        'CountryIdentifier':                                    'int16',
+        'CityIdentifier':                                       'float32',
+        'OrganizationIdentifier':                               'float16',
+        'GeoNameIdentifier':                                    'float16',
+        'LocaleEnglishNameIdentifier':                          'int8',
+        'Platform':                                             'category',
+        'Processor':                                            'category',
+        'OsVer':                                                'category',
+        'OsBuild':                                              'int16',
+        'OsSuite':                                              'int16',
+        'OsPlatformSubRelease':                                 'category',
+        'OsBuildLab':                                           'category',
+        'SkuEdition':                                           'category',
+        'IsProtected':                                          'float16',
+        'AutoSampleOptIn':                                      'int8',
+        'PuaMode':                                              'category',
+        'SMode':                                                'float16',
+        'IeVerIdentifier':                                      'float16',
+        'SmartScreen':                                          'category',
+        'Firewall':                                             'float16',
+        'UacLuaenable':                                         'float32',
+        'Census_MDC2FormFactor':                                'category',
+        'Census_DeviceFamily':                                  'category',
+        'Census_OEMNameIdentifier':                             'float16',
+        'Census_OEMModelIdentifier':                            'float32',
+        'Census_ProcessorCoreCount':                            'float16',
+        'Census_ProcessorManufacturerIdentifier':               'float16',
+        'Census_ProcessorModelIdentifier':                      'float16',
+        'Census_ProcessorClass':                                'category',
+        'Census_PrimaryDiskTotalCapacity':                      'float32',
+        'Census_PrimaryDiskTypeName':                           'category',
+        'Census_SystemVolumeTotalCapacity':                     'float32',
+        'Census_HasOpticalDiskDrive':                           'int8',
+        'Census_TotalPhysicalRAM':                              'float32',
+        'Census_ChassisTypeName':                               'category',
+        'Census_InternalPrimaryDiagonalDisplaySizeInInches':    'float16',
+        'Census_InternalPrimaryDisplayResolutionHorizontal':    'float16',
+        'Census_InternalPrimaryDisplayResolutionVertical':      'float16',
+        'Census_PowerPlatformRoleName':                         'category',
+        'Census_InternalBatteryType':                           'category',
+        'Census_InternalBatteryNumberOfCharges':                'float32',
+        'Census_OSVersion':                                     'category',
+        'Census_OSArchitecture':                                'category',
+        'Census_OSBranch':                                      'category',
+        'Census_OSBuildNumber':                                 'int16',
+        'Census_OSBuildRevision':                               'int32',
+        'Census_OSEdition':                                     'category',
+        'Census_OSSkuName':                                     'category',
+        'Census_OSInstallTypeName':                             'category',
+        'Census_OSInstallLanguageIdentifier':                   'float16',
+        'Census_OSUILocaleIdentifier':                          'int16',
+        'Census_OSWUAutoUpdateOptionsName':                     'category',
+        'Census_IsPortableOperatingSystem':                     'int8',
+        'Census_GenuineStateName':                              'category',
+        'Census_ActivationChannel':                             'category',
+        'Census_IsFlightingInternal':                           'float16',
+        'Census_IsFlightsDisabled':                             'float16',
+        'Census_FlightRing':                                    'category',
+        'Census_ThresholdOptIn':                                'float16',
+        'Census_FirmwareManufacturerIdentifier':                'float16',
+        'Census_FirmwareVersionIdentifier':                     'float32',
+        'Census_IsSecureBootEnabled':                           'int8',
+        'Census_IsWIMBootEnabled':                              'float16',
+        'Census_IsVirtualDevice':                               'float16',
+        'Census_IsTouchEnabled':                                'int8',
+        'Census_IsPenCapable':                                  'int8',
+        'Census_IsAlwaysOnAlwaysConnectedCapable':              'float16',
+        'Wdft_IsGamer':                                         'float16',
+        'Wdft_RegionIdentifier':                                'float16',
+        'HasDetections':                                        'int8'
+        }
+
+gc.collect()
+
+train_data = dd.read_csv("/content/drive/MyDrive/Bases de Datos/train.csv", dtype=dtypes)
+train_data = train_data.compute()
+
+test_data = dd.read_csv("/content/drive/MyDrive/Bases de Datos/train.csv", dtype=dtypes)
+test_data = test_data.compute()
+
+gc.collect()
+
+print(train_data.shape)
+train_data.head(15)
+
+gc.collect()
+
+print(train_data.columns)
+
+fig, ax = plt.subplots(figsize=(8, 5))
+ax = sns.countplot(x=train_data["HasDetections"])
+ax.set(title='Count by Detection', ylabel='Count', xlabel='Detection')
+plt.tight_layout()
+plt.show()
+
+# Missing values
+missingV = train_data.isnull().sum()
+missingVPor = 100 * train_data.isnull().sum() / len(train_data)
+
+missingT = pd.concat([missingV, missingVPor], axis=1)
+missingTNC = missingT.rename(columns = {0 : 'Count by Missing Values', 1 : 'Percentage of Total Values'})
+missingTNC = missingTNC[missingTNC.iloc[:,1] != 0].sort_values('Percentage of Total Values', ascending=False).round(1)
+print(missingTNC)
+
+total = train_data.shape[0]
+missingValues = []
+for col in train_data.columns:
+    missingValues.append([col, train_data[col].count(), total])
+
+missingValues = pd.DataFrame(missingValues, columns=['Column', 'missingValues', 'Total']).sort_values("missingValues", ascending=True)
+
+fig, ax = plt.subplots(figsize=(10, 16))
+sns.barplot(x="Total", y="Column", data=missingValues, label="Missing",color="#f8f32b")
+sns.barplot(x="missingValues", y="Column", data=missingValues, label="Existing", color="#2b2d42")
+plt.show()
+
+gc.collect()
+
+fig, ax = plt.subplots(1, figsize=(50,7))
+
+ax = sns.countplot(data=train_data, x="Census_InternalBatteryType", hue="HasDetections", palette = 'Set2', edgecolor='black')
+ax.set(title='Countplot of InternalBatteryType vs Detections', ylabel='Count')
+
+fig, ax = plt.subplots(1, figsize=(8,5))
+
+ax = sns.countplot(data=train_data, x="Census_ThresholdOptIn", hue="HasDetections", palette = 'Set2', edgecolor='black')
+ax.set(title='Countplot of ThresholdOptIn vs Detections', ylabel='Count')
+
+fig, ax = plt.subplots(1, figsize=(8,5))
+
+ax = sns.countplot(data=train_data, x="Census_IsWIMBootEnabled", hue="HasDetections", palette = 'Set2', edgecolor='black')
+ax.set(title='Countplot of IsWIMBootEnabled vs Detections', ylabel='Count')
+
+fig, ax = plt.subplots(1, figsize=(30,7))
+
+ax = sns.countplot(data=train_data, x="SmartScreen", hue="HasDetections", palette = 'Set2', edgecolor='black')
+ax.set(title='Countplot of SmartScreen vs Detections', ylabel='Count')
+
+fig, ax = plt.subplots(1, figsize=(30,7))
+
+ax = sns.countplot(data=train_data, x="OrganizationIdentifier", hue="HasDetections", palette = 'Set2', edgecolor='black')
+ax.set(title='Countplot of OrganizationIdentifier vs Detections', ylabel='Count')
+
+fig, ax = plt.subplots(1, figsize=(30,7))
+
+ax = sns.countplot(data=train_data, x="ProductName", hue="HasDetections", palette = 'Set2', edgecolor='black')
+ax.set(title='Countplot of ProductName vs Detections', ylabel='Count')
+
+uselessCol = ['MachineIdentifier','ProductName','PuaMode',
+              'Census_ProcessorClass','Census_InternalBatteryType',
+              'Census_IsFlightingInternal','Census_ThresholdOptIn',
+              'Census_IsWIMBootEnabled',"OrganizationIdentifier"]
+train_data.drop(uselessCol, axis=1, inplace=True)
+
+bin = [col for col in train_data.columns if train_data[col].nunique() == 2]
+numF = ['Census_ProcessorCoreCount','Census_PrimaryDiskTotalCapacity',
+        'Census_SystemVolumeTotalCapacity','Census_TotalPhysicalRAM',
+        'Census_InternalPrimaryDiagonalDisplaySizeInInches',
+        'Census_InternalPrimaryDisplayResolutionHorizontal',
+        'Census_InternalPrimaryDisplayResolutionVertical',
+        'Census_InternalBatteryNumberOfCharges']
+cat = [col for col in train_data.columns if (col not in numF) & (col not in bin)]
+
+gc.collect()
+
+largeResgisters = [col for col in cat if train_data[col].nunique() > 600]
+print(largeResgisters)
+
+import pandas as pd
+
+x = range(5)
+y = range(5)
+z = range(5)
+
+df = pd.DataFrame(data=(x,y,z))
+
+df
+
+df = df.drop(df.index[range(2)])
+df
+
+gc.collect()
+
+train_data.drop(largeResgisters, axis=1, inplace=True)
+
+from sklearn import preprocessing
+
+cat = [col for col in train_data.columns if (col not in numF) & (col not in bin)]
+
+for col in cat:
+  le = preprocessing.LabelEncoder().fit(train_data[col])
+  train_data[col] = le.transform(train_data[col])
+
+train_data.head(15)
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+model = KNeighborsClassifier(n_neighbors=5,n_jobs=-1)
+model.fit(train_data,labels)
+predict = model.predict()
